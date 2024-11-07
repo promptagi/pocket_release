@@ -1,0 +1,37 @@
+name: Release
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            PocketAI-by-LangGPT-${{ env.VERSION }}.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync to Gitee
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          curl -X POST \
+            "https://gitee.com/api/v5/repos/${{ secrets.GITEE_OWNER }}/pocket-ai-release/releases" \
+            -H "Authorization: token ${{ env.GITEE_TOKEN }}" \
+            -F "tag_name=v${{ env.VERSION }}" \
+            -F "name=Release ${{ env.VERSION }}" \
+            -F "file=@PocketAI-by-LangGPT-${{ env.VERSION }}.apk"
